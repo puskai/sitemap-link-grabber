@@ -1,5 +1,6 @@
 package com.wundermanpxp;
 
+import java.util.List;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
@@ -11,7 +12,7 @@ public class SpiderConfig {
 
 	private int timeout;
 
-	private String sitemapUrl;
+	private List<String> sitemapUrls;
 
 	private String replaceHostFrom;
 
@@ -26,4 +27,6 @@ public class SpiderConfig {
 	private String username;
 
 	private String password;
+
+	private int statsRefreshTime;
 }

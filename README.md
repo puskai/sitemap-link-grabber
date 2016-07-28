@@ -1,13 +1,13 @@
 # sitemap-link-grabber
 
-This application grabs every url from a sitemap.xml.
+This application grabs every url from a list sitemap.xml-s.
 It is based on [ScrumBucket tutorial](http://scrumbucket.org/tutorials/neo4j-site-crawler/).
 It uses Spring boot, you can set application settings in the application.properties or by command line arguments.
 We are using it grab every page from a site in order the pages to be cached.
-The application logs page visits:
+The application logs grab stats every <statsRefreshTime> seconds:
 
-		2016-07-27 12:42:15.619  ... pool-1-thread-4 ...   : Visiting page: <url>
-		2016-07-27 12:42:15.618  ... pool-1-thread-4 ...   : Status code : 200 for page: <url>
+		2016-07-28 03:29:35.058  ...      : Processed 2825 pages - 34.5 %.
+		2016-07-28 03:29:35.058  ...      : 2825 pages with state: 200 - 100.0 %.
 
 and some stats:
 
@@ -36,12 +36,13 @@ command line arguments:
 		username - username for basic authentication - if left empty, no basic authentication is used (default:<empty>)
 		password - password for basic authentication (default:<empty>)
 		timeout -  timeout in ms when we grab a page (default:6000)
-		sitemapUrl- url of the sitemap.xml (default: http://index.hu/sitemap/cikkek_1999.xml)
+		sitemapUrls- comma separated list of sitemap urls (default: http://index.hu/sitemap/cikkek_1999.xml)
 		maxConnections- how many threads should run (default: 10)
 		pauseTime - pause in ms after a page was grabbed by a thread in order the decrease stress on the server - (default:0)
 		followRedirects - grabber should follow redirects - (default:false)
 		replaceHostFrom - if we need to grab the pages from another host (integration, ...), this string from the urls will be replaced (default:<empty>)
 		replaceHostTo - the new host, if replaceHostFrom is used (default:<empty>)
+		statsRefreshTime - time period in ms to display the intermediate logs (default:2000)
 
 ### Remarks
 This app is an internal tool, has no enough test coverage, there will not be further improvements.

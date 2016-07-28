@@ -27,7 +27,7 @@ public class GrabPage implements Callable<GrabPage> {
 
 	@Override
 	public GrabPage call() throws Exception {
-		log.info("Visiting page: " + url.toString());
+		log.debug("Grabbing page: " + url.toString());
 		StopWatch stopWatch = new StopWatch();
 		StopWatch responseStopWatch = new StopWatch();
 		stopWatch.start();
@@ -56,15 +56,15 @@ public class GrabPage implements Callable<GrabPage> {
 		} catch (HttpStatusException e) {
 			responseStopWatch.stop();
 			statusCode = e.getStatusCode();
-			log.debug("Failed to visit : " + url.toString(), e);
+			log.debug("Failed to grab : " + url.toString(), e);
 		} catch (Exception e) {
 			responseStopWatch.stop();
-			log.warn("Failed to visit : " + url.toString(), e);
+			log.warn("Failed to grab : " + url.toString(), e);
 		}
 		responseTime = responseStopWatch.getTotalTimeMillis();
-		log.info("Status code : " + statusCode + " for page: " + url.toString());
+		log.debug("Status code : " + statusCode + " for page: " + url.toString());
 		stopWatch.stop();
-		log.debug("Page " + url.toString() + " processed in " + stopWatch.getTotalTimeSeconds() + " seconds");
+		log.trace("Page " + url.toString() + " processed in " + stopWatch.getTotalTimeSeconds() + " seconds");
 
 		if (spiderConfig.getPauseTime() > 0) {
 			log.trace("Waiting for  " + spiderConfig.getPauseTime() + " ms - not to stress the server");

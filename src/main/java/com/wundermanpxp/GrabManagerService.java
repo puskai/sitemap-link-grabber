@@ -2,6 +2,7 @@ package com.wundermanpxp;
 
 import java.io.IOException;
 import java.net.URL;
+import java.text.DecimalFormat;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -19,29 +20,44 @@ public class GrabManagerService {
 	@Autowired
 	private SpiderConfig spiderConfig;
 
-	@Autowired
-	private GrabSitemap grabSitemap;
-
 	private ExecutorService executorService;
 
 	private final List<Future<GrabPage>> futures = new ArrayList<>();
 
 	private final Map<Integer, ResponseStats> statusMap = new HashMap<>();
 
+	private int totalRecords;
+
+	private final DecimalFormat df = new DecimalFormat("###.0");
+
 	@PostConstruct
 	public void postConstruct() throws IOException, InterruptedException, ExecutionException {
+		log.info("----------------------------------------------------------");
+		log.info("Working with " + spiderConfig.getMaxConnections() + " threads.");
+		log.info("Pause between grabs: " + spiderConfig.getPauseTime() + " ms.");
 		executorService = Executors.newFixedThreadPool(spiderConfig.getMaxConnections());
-		grabSitemap.grab().stream().forEach((url) -> {
+		List<URL> urls = new ArrayList<>();
+		for (String sitemapUrl : spiderConfig.getSitemapUrls()) {
+			GrabSitemap grabSitemap = new GrabSitemap(spiderConfig, new URL(sitemapUrl));
+			grabSitemap.grab().stream().forEach((url) -> {
+				urls.add(url);
+			});
+		}
+		totalRecords = urls.size();
+		log.info("Total " + totalRecords + " pages.");
+		urls.stream().forEach((url) -> {
 			submitUrl(url);
 		});
+
 		while (checkPageGrabs()) {
 		}
 		executorService.shutdown();
-		log.info("Total:");
+		log.info("----------------------------------------------------------");
+		log.info("Results:");
 		statusMap.entrySet().stream().forEach((entry) -> {
 			Integer statusCode = entry.getKey();
 			ResponseStats stats = entry.getValue();
-			log.info("----------------------------------------------------------");
+			log.info("----------------------------------------------");
 			log.info("Http response status: " + statusCode);
 			log.info("Count: " + stats.getCount());
 			log.info("Average response time : " + stats.getAverageResponseTime() + " ms");
@@ -50,6 +66,7 @@ public class GrabManagerService {
 			log.info("Shortest response time : " + stats.getShortestResponseTime() + " ms");
 			log.info("Shortest response url : " + stats.getShortestResponseUrl().toString());
 		});
+		log.info("----------------------------------------------");
 
 	}
 
@@ -61,7 +78,7 @@ public class GrabManagerService {
 	}
 
 	private boolean checkPageGrabs() throws InterruptedException, ExecutionException {
-		Thread.sleep(1000);
+		Thread.sleep(spiderConfig.getStatsRefreshTime());
 		Iterator<Future<GrabPage>> iterator = futures.iterator();
 		while (iterator.hasNext()) {
 			Future<GrabPage> future = iterator.next();
@@ -69,6 +86,15 @@ public class GrabManagerService {
 				addToMap(future.get());
 				iterator.remove();
 			}
+		}
+		int count = 0;
+		count = statusMap.entrySet().stream().map((entry) -> entry.getValue()).map((value) -> value.getCount()).reduce(count, Integer::sum);
+		log.info("----------------------------------------------");
+		log.info("Processed " + count + " pages - " + df.format(count * 100.0 / totalRecords) + " %.");
+		for (Map.Entry<Integer, ResponseStats> entry : statusMap.entrySet()) {
+			Integer key = entry.getKey();
+			ResponseStats value = entry.getValue();
+			log.info(value.getCount() + " pages with state: " + key + " - " + df.format(value.getCount() * 100.0 / count) + " %.");
 		}
 		return (futures.size() > 0);
 	}

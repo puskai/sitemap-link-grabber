@@ -6,12 +6,11 @@ import java.net.URL;
 import java.util.Base64;
 import java.util.HashSet;
 import java.util.Set;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 import org.springframework.util.StopWatch;
 import org.springframework.util.StringUtils;
 
@@ -21,18 +20,18 @@ import org.springframework.util.StringUtils;
  */
 @Data
 @Slf4j
-@Component
+@AllArgsConstructor
 public class GrabSitemap {
 
-	@Autowired
 	private SpiderConfig spiderConfig;
+
+	private URL url;
 
 	public Set<URL> grab() throws IOException {
 		Set<URL> urlList = new HashSet<>();
-		log.info("Visiting sitemap : " + spiderConfig.getSitemapUrl());
+		log.info("Grabbing sitemap : " + url.toString());
 		StopWatch stopWatch = new StopWatch();
 		stopWatch.start();
-		URL url = new URL(spiderConfig.getSitemapUrl());
 		Document document;
 		if (!StringUtils.isEmpty(spiderConfig.getUsername()) && !StringUtils.isEmpty(spiderConfig.getPassword())) {
 			String login = spiderConfig.getUsername() + ":" + spiderConfig.getPassword();
@@ -59,7 +58,7 @@ public class GrabSitemap {
 			}
 		});
 		stopWatch.stop();
-		log.info("Found " + urlList.size() + " urls in " + stopWatch.getTotalTimeSeconds() + " seconds");
+		log.info("Found " + urlList.size() + " urls in " + stopWatch.getTotalTimeSeconds() + " seconds. (" + url.toString() + ")");
 		return urlList;
 	}
 
