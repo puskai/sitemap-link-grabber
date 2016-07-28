@@ -29,4 +29,7 @@ public class SpiderConfig {
 	private String password;
 
 	private int statsRefreshTime;
+
+	private List<String> solrUrls;
+
 }

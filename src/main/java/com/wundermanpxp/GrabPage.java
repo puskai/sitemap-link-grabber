@@ -19,6 +19,7 @@ public class GrabPage implements Callable<GrabPage> {
 	private URL url;
 	private int statusCode;
 	private long responseTime;
+	private String body;
 
 	public GrabPage(SpiderConfig spiderConfig, URL url) {
 		this.spiderConfig = spiderConfig;
@@ -49,6 +50,7 @@ public class GrabPage implements Callable<GrabPage> {
 								.followRedirects(spiderConfig.isFollowRedirects())
 								.execute();
 			}
+			body = response.body();
 			responseStopWatch.stop();
 			//System.out.println(response.body().substring(0, 100));
 			statusCode = response.statusCode();

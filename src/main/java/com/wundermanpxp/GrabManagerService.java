@@ -8,8 +8,14 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.stream.Collectors;
 import javax.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.solr.client.solrj.SolrServer;
+import org.apache.solr.client.solrj.SolrServerException;
+import org.apache.solr.client.solrj.impl.HttpSolrServer;
+import org.apache.solr.client.solrj.request.ContentStreamUpdateRequest;
+import org.apache.solr.common.util.ContentStreamBase;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -30,11 +36,21 @@ public class GrabManagerService {
 
 	private final DecimalFormat df = new DecimalFormat("###.0");
 
+	private List<SolrServer> solrServers = new ArrayList<>();
+
 	@PostConstruct
 	public void postConstruct() throws IOException, InterruptedException, ExecutionException {
 		log.info("----------------------------------------------------------");
 		log.info("Working with " + spiderConfig.getMaxConnections() + " threads.");
 		log.info("Pause between grabs: " + spiderConfig.getPauseTime() + " ms.");
+		if (spiderConfig.getSolrUrls().isEmpty()) {
+			log.info("Solr servers: NONE.");
+		} else {
+			log.info("Solr servers: " + spiderConfig.getSolrUrls().stream().collect(Collectors.joining(",")));
+		}
+		spiderConfig.getSolrUrls().stream().forEach((solrUlr) -> {
+			solrServers.add(new HttpSolrServer(solrUlr));
+		});
 		executorService = Executors.newFixedThreadPool(spiderConfig.getMaxConnections());
 		List<URL> urls = new ArrayList<>();
 		for (String sitemapUrl : spiderConfig.getSitemapUrls()) {
@@ -77,13 +93,15 @@ public class GrabManagerService {
 		statusMap.get(page.getStatusCode()).addPage(page);
 	}
 
-	private boolean checkPageGrabs() throws InterruptedException, ExecutionException {
+	private boolean checkPageGrabs() throws InterruptedException, ExecutionException, IOException {
 		Thread.sleep(spiderConfig.getStatsRefreshTime());
 		Iterator<Future<GrabPage>> iterator = futures.iterator();
 		while (iterator.hasNext()) {
 			Future<GrabPage> future = iterator.next();
 			if (future.isDone()) {
-				addToMap(future.get());
+				GrabPage page = future.get();
+				addToMap(page);
+				sendToSolr(page);
 				iterator.remove();
 			}
 		}
@@ -104,6 +122,27 @@ public class GrabManagerService {
 		GrabPage grabPage = new GrabPage(spiderConfig, url);
 		Future<GrabPage> future = executorService.submit(grabPage);
 		futures.add(future);
+	}
+
+	public void sendToSolr(GrabPage page) {
+		if (page.getStatusCode() == 200) {
+			solrServers.stream().forEach((server) -> {
+				try {
+					ContentStreamUpdateRequest req = new ContentStreamUpdateRequest("/update/extract");
+					req.setParam("literal.id", page.getUrl().toString());
+					req.setParam("extractOnly", "false");
+					req.setParam("commit", "true");
+					req.setParam("uprefix", "attr_");
+					req.setParam("fmap.content", "attr_content");
+					req.addContentStream(new ContentStreamBase.StringStream(page.getBody()));
+					server.request(req);
+
+				} catch (IOException | SolrServerException e) {
+					log.error("Solr update failed for page: " + page.getUrl().toString() + "(" + e.getMessage() + ")");
+					log.debug("Solr update failed for page: " + page.getUrl().toString(), e);
+				}
+			});
+		}
 	}
 
 }

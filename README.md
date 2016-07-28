@@ -43,6 +43,7 @@ command line arguments:
 		replaceHostFrom - if we need to grab the pages from another host (integration, ...), this string from the urls will be replaced (default:<empty>)
 		replaceHostTo - the new host, if replaceHostFrom is used (default:<empty>)
 		statsRefreshTime - time period in ms to display the intermediate logs (default:2000)
+		solrUrls - comma separated list of solr urls - ex: http://localhost:8983/solr/collection1 (default:<empty>)
 
 ### Remarks
 This app is an internal tool, has no enough test coverage, there will not be further improvements.
